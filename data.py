@@ -10,7 +10,7 @@ def getColumn(column_name):
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
         # Add your service account JSON file here
-        creds = ServiceAccountCredentials.from_json_keyfile_name('appdata/credentials.json', scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 
         # Authorize the clientsheet 
         client = gspread.authorize(creds)
