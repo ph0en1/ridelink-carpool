@@ -50,21 +50,27 @@ def pre_cache():
 
     # Start inserting values from row 1 in column M using batch update
     start_row = 2
-    column = 'M'
+    coords_column = 'M'
+    ids_column = 'L'
 
-    # Prepare a list of cell updates (batch processing)
-    cell_list = sheet.range(f'{column}{start_row}:{column}{start_row + len(coordsListPC) - 1}')
+    # Prepare a list of cell updates (batch processing) for coordinates
+    coords_cell_list = sheet.range(f'{coords_column}{start_row}:{coords_column}{start_row + len(coordsListPC) - 1}')
+
+    # Prepare a list of cell updates for user IDs
+    ids_cell_list = sheet.range(f'{ids_column}{start_row}:{ids_column}{start_row + len(coordsListPC) - 1}')
 
     count2 = 0
-    # Assign the coordinates to the corresponding cells
-    for i, cell in enumerate(cell_list):
-        cell.value = coordsListPC[i]
+    # Assign the coordinates and generate unique 4-digit IDs
+    for i, (coords_cell, ids_cell) in enumerate(zip(coords_cell_list, ids_cell_list)):
+        coords_cell.value = coordsListPC[i]
+        ids_cell.value = str(1000 + i)  # Generate unique 4-digit user ID
 
-    # Perform a batch update to reduce the number of API requests
-    sheet.update_cells(cell_list)
+    # Perform batch updates to reduce the number of API requests
+    sheet.update_cells(coords_cell_list)
+    sheet.update_cells(ids_cell_list)
 
-    print("Coordinates added to column M successfully!")
-
+    print("Coordinates and User IDs added successfully!")
+    
 def getColumn(column_name):
     sheet_name = 'Sample Data Sheet'
     worksheet_name = 'Sheet1'  # Replace with your worksheet name if different
