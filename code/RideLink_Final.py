@@ -9,9 +9,16 @@ from geopy.distance import geodesic
 import folium
 import smtplib
 import ssl
+import math
 from email.message import EmailMessage
 
 #---------------------------------------------FUNCTIONS---------------------------------------
+import random
+from gspread_formatting import CellFormat, Color
+
+import random
+from gspread_formatting import format_cell_range, CellFormat, Color
+
 def pre_cache():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
@@ -46,11 +53,21 @@ def pre_cache():
 
     for i, (coords_cell, ids_cell) in enumerate(zip(coords_cell_list, ids_cell_list)):
         coords_cell.value = coordsListPC[i]
-        ids_cell.value = str(1000 + i)
+        ids_cell.value = str(random.randint(100000, 999999))  # Generate a random 6-digit number
+
+        # Highlight rows with "Error" in the `M` column
+        if coords_cell.value in ["Error", "Not found"]:
+            row_index = start_row + i
+            error_format = CellFormat(
+                backgroundColor=Color(1, 0, 0)  # Red background
+            )
+            format_cell_range(sheet, f'A{row_index}:Z{row_index}', error_format)
 
     sheet.update_cells(coords_cell_list)
     sheet.update_cells(ids_cell_list)
     print("Coordinates and User IDs added successfully!")
+
+
     
 def getColumn(column_name):
     sheet_name = 'Sample Data Sheet'
@@ -131,6 +148,24 @@ def findNearbyAddresses(houseAddress, max_distance):
     if not filtered_addresses:
         messagebox.showinfo("Info", "No nearby addresses found.")
 
+import random
+
+def displace_coordinates(coord, max_displacement=0.2):
+    """
+    Displaces a coordinate by a random amount within the given maximum displacement in miles.
+    """
+    # Convert miles to degrees (approximation: 1 mile ≈ 0.0145 degrees latitude/longitude)
+    max_deg = max_displacement * 0.0145
+
+    lat_offset = random.uniform(-max_deg, max_deg)
+    lon_offset = random.uniform(-max_deg, max_deg)
+
+    # Adjust for longitude scaling based on latitude
+    lon_offset /= abs(math.cos(math.radians(coord[0])))
+
+    return coord[0] + lat_offset, coord[1] + lon_offset
+
+
 def mapFunc():
     houseAddress = answer1.get()
     findNearbyAddresses(houseAddress, 0.5)
@@ -140,14 +175,27 @@ def mapFunc():
         return
 
     m = folium.Map(location=returnCoor(houseAddress), zoom_start=13)
-    folium.Marker(returnCoor(houseAddress), popup=houseAddress, icon=folium.Icon(color="red", icon="home")).add_to(m)
 
+    # Add a marker for the user's house
+    folium.Marker(
+        returnCoor(houseAddress),
+        popup=houseAddress,
+        icon=folium.Icon(color="red", icon="home")
+    ).add_to(m)
+
+    # Add markers for nearby addresses with displaced coordinates
     for i in range(len(filtered_addresses)):
         coord = filtered_coords[i]
-        folium.Marker(location=coord, popup=f"User ID: {filtered_userids[i]}").add_to(m)
+        displaced_coord = displace_coordinates(coord)  # Apply displacement
+        folium.Marker(
+            location=displaced_coord,
+            popup=f"User ID: {filtered_userids[i]}"
+        ).add_to(m)
 
+    # Save and open the map
     m.save("map.html")
     webbrowser.open("map.html")
+
 
 def emailSend(u_id, contact):
     receiving_email = None
@@ -168,8 +216,8 @@ def emailSend(u_id, contact):
     message = EmailMessage()
     message["From"] = sender
     message["To"] = receiving_email
-    message["Subject"] = "Hello there."
-    message.set_content(f"Hello! I have a student that goes to the same school as yours. I am interested in a carpool! If you would like to contact me, here is my info: {contact}")
+    message["Subject"] = "RideLink Message Request"
+    message.set_content(f"Hello! I have a student that goes to the same school as yours. I am interested in a carpool! If you would like to contact me, here is my info: {contact} \n \n \n THIS IS AN AUTOMATED MESSAGE FROM RIDELINK \n no reply, contact number/email specified above instead")
 
     context = ssl.create_default_context()
     try:
