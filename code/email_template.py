@@ -3,7 +3,7 @@ import ssl #(secure socket layer)
 from email.message import EmailMessage
 
 sender="centralized@gmail.com"
-receiver="udyat.m@gmail.com"
+receiver="test@gmail.com"
 password="sscy uadp heop pdox"
 
 port=465
